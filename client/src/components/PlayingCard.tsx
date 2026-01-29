@@ -6,6 +6,7 @@ import { Heart, Diamond, Club, Spade } from "lucide-react";
 interface PlayingCardProps {
   card: Card;
   index: number;
+  total: number;
 }
 
 const SuitIcon = ({ suit, className }: { suit: Suit; className?: string }) => {
@@ -17,21 +18,28 @@ const SuitIcon = ({ suit, className }: { suit: Suit; className?: string }) => {
   }
 };
 
-export function PlayingCard({ card, index }: PlayingCardProps) {
+export function PlayingCard({ card, index, total }: PlayingCardProps) {
   const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
+  
+  // Calculate offset to center the card stack
+  const cardWidth = 96; // w-24 = 96px
+  const spacing = 60; // space between cards
+  const totalWidth = (total - 1) * spacing + cardWidth;
+  const startOffset = -totalWidth / 2 + cardWidth / 2;
+  const xPosition = startOffset + index * spacing;
   
   return (
     <motion.div
       initial={{ 
         opacity: 0, 
         y: -100, 
-        x: -50,
+        x: xPosition,
         rotateY: card.isHidden ? 180 : 0 
       }}
       animate={{ 
         opacity: 1, 
         y: 0, 
-        x: index * 30, // Stack cards slightly offset
+        x: xPosition,
         rotateY: card.isHidden ? 180 : 0 
       }}
       transition={{ 
@@ -43,12 +51,9 @@ export function PlayingCard({ card, index }: PlayingCardProps) {
       className={cn(
         "absolute w-24 h-36 md:w-32 md:h-48 rounded-xl shadow-xl",
         "border border-black/10 select-none perspective-1000",
-        // Center the stack by offsetting based on index logic in parent, 
-        // but here we just handle absolute positioning relative to container center
       )}
       style={{
         zIndex: index,
-        marginLeft: -48 // Half width to center first card
       }}
     >
       <div className={cn(

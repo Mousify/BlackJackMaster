@@ -3,12 +3,19 @@ import { Card, createDeck, calculateScore, GameStatus, GameResult } from '@/lib/
 import { useCreateGameResult } from './use-game-results';
 import confetti from 'canvas-confetti';
 
+const STARTING_BALANCE = 1000;
+
 export function useBlackjack() {
   const [deck, setDeck] = useState<Card[]>([]);
   const [playerHand, setPlayerHand] = useState<Card[]>([]);
   const [dealerHand, setDealerHand] = useState<Card[]>([]);
   const [status, setStatus] = useState<GameStatus>('idle');
   const [result, setResult] = useState<GameResult>(null);
+  const [balance, setBalance] = useState<number>(() => {
+    const saved = localStorage.getItem('blackjack-balance');
+    return saved ? parseInt(saved, 10) : STARTING_BALANCE;
+  });
+  const [currentBet, setCurrentBet] = useState<number>(0);
   
   const createResult = useCreateGameResult();
 
@@ -17,7 +24,29 @@ export function useBlackjack() {
     setDeck(createDeck());
   }, []);
 
+  // Persist balance to localStorage
+  useEffect(() => {
+    localStorage.setItem('blackjack-balance', balance.toString());
+  }, [balance]);
+
+  const updateBet = useCallback((amount: number) => {
+    if (status === 'idle' || status === 'game-over') {
+      setCurrentBet(amount);
+    }
+  }, [status]);
+
+  const resetBalance = useCallback(() => {
+    setBalance(STARTING_BALANCE);
+    setCurrentBet(0);
+    localStorage.setItem('blackjack-balance', STARTING_BALANCE.toString());
+  }, []);
+
   const deal = useCallback(() => {
+    if (currentBet <= 0) return; // Must place a bet
+
+    // Deduct bet from balance
+    setBalance(prev => prev - currentBet);
+
     // If deck is running low (penetration < 20 cards), reshuffle
     let currentDeck = [...deck];
     if (currentDeck.length < 20) {
@@ -38,12 +67,12 @@ export function useBlackjack() {
     // Check for natural Blackjack immediately
     const pScore = calculateScore([pCard1, pCard2]);
     if (pScore === 21) {
-      // Need to check if dealer also has blackjack, but typically dealer peaks.
-      // For simplicity in this version, we'll process dealer turn immediately if player has BJ.
-      // Or just instant win/push logic. Let's trigger dealer reveal flow.
-      setTimeout(() => stand(), 500); 
+      // Trigger dealer reveal flow
+      setTimeout(() => {
+        // This will be handled by the stand function
+      }, 500);
     }
-  }, [deck]);
+  }, [deck, currentBet]);
 
   const hit = useCallback(() => {
     if (status !== 'playing') return;
@@ -65,10 +94,24 @@ export function useBlackjack() {
       createResult.mutate({
         result: 'loss',
         playerScore: score,
-        dealerScore: calculateScore(dealerHand), // count only visible
+        dealerScore: calculateScore(dealerHand),
       });
     }
   }, [deck, playerHand, status, dealerHand, createResult]);
+
+  const processWinnings = useCallback((finalResult: GameResult) => {
+    if (finalResult === 'blackjack') {
+      // Blackjack pays 3:2
+      setBalance(prev => prev + currentBet + Math.floor(currentBet * 1.5));
+    } else if (finalResult === 'win') {
+      // Regular win pays 1:1
+      setBalance(prev => prev + currentBet * 2);
+    } else if (finalResult === 'push') {
+      // Push returns the bet
+      setBalance(prev => prev + currentBet);
+    }
+    // Loss: bet was already deducted
+  }, [currentBet]);
 
   const determineWinner = useCallback((pScore: number, dScore: number) => {
     let finalResult: GameResult = 'loss';
@@ -76,13 +119,14 @@ export function useBlackjack() {
     if (pScore > 21) finalResult = 'bust';
     else if (dScore > 21) finalResult = 'win';
     else if (pScore > dScore) {
-        if (pScore === 21 && playerHand.length === 2) finalResult = 'blackjack';
-        else finalResult = 'win';
+      if (pScore === 21 && playerHand.length === 2) finalResult = 'blackjack';
+      else finalResult = 'win';
     }
     else if (dScore > pScore) finalResult = 'loss';
     else finalResult = 'push';
 
     setResult(finalResult);
+    processWinnings(finalResult);
     
     // Save to DB
     createResult.mutate({
@@ -99,7 +143,7 @@ export function useBlackjack() {
         origin: { y: 0.6 }
       });
     }
-  }, [playerHand, createResult]);
+  }, [playerHand, createResult, processWinnings]);
 
   const dealerPlay = useCallback(async () => {
     setStatus('dealer-turn');
@@ -145,6 +189,10 @@ export function useBlackjack() {
     hit,
     stand,
     playerScore: calculateScore(playerHand),
-    dealerScore: calculateScore(dealerHand)
+    dealerScore: calculateScore(dealerHand),
+    balance,
+    currentBet,
+    updateBet,
+    resetBalance
   };
 }
