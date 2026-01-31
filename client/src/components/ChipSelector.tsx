@@ -1,6 +1,12 @@
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
+import chip1Img from "@assets/chip-1_1769865411535.png";
+import chip5Img from "@assets/chip-5_1769865411535.png";
+import chip25Img from "@assets/chip-25_1769865411536.png";
+import chip100Img from "@assets/chip-100_1769865411536.png";
+import chip500Img from "@assets/chip-500_1769865411536.png";
+
 interface ChipSelectorProps {
   balance: number;
   currentBet: number;
@@ -9,10 +15,11 @@ interface ChipSelectorProps {
 }
 
 const CHIP_VALUES = [
-  { value: 5, color: "bg-red-600", border: "border-red-400" },
-  { value: 10, color: "bg-blue-600", border: "border-blue-400" },
-  { value: 25, color: "bg-green-600", border: "border-green-400" },
-  { value: 100, color: "bg-black", border: "border-gray-400" },
+  { value: 1, image: chip1Img },
+  { value: 5, image: chip5Img },
+  { value: 25, image: chip25Img },
+  { value: 100, image: chip100Img },
+  { value: 500, image: chip500Img },
 ];
 
 export function ChipSelector({ balance, currentBet, onBetChange, disabled }: ChipSelectorProps) {
@@ -44,7 +51,7 @@ export function ChipSelector({ balance, currentBet, onBetChange, disabled }: Chi
       </div>
 
       {/* Chips */}
-      <div className="flex gap-3 flex-wrap justify-center">
+      <div className="flex gap-2 flex-wrap justify-center">
         {CHIP_VALUES.map((chip) => (
           <motion.button
             key={chip.value}
@@ -54,21 +61,17 @@ export function ChipSelector({ balance, currentBet, onBetChange, disabled }: Chi
             disabled={disabled || currentBet + chip.value > balance}
             data-testid={`chip-${chip.value}`}
             className={cn(
-              chip.color,
-              "w-14 h-14 md:w-16 md:h-16 rounded-full border-4",
-              chip.border,
-              "flex items-center justify-center shadow-lg transition-all",
-              "relative overflow-hidden",
+              "w-14 h-14 md:w-16 md:h-16 transition-all",
               disabled || currentBet + chip.value > balance
-                ? "opacity-40 cursor-not-allowed"
-                : "cursor-pointer hover:shadow-xl"
+                ? "opacity-40 cursor-not-allowed grayscale"
+                : "cursor-pointer hover:brightness-110"
             )}
           >
-            {/* Chip pattern */}
-            <div className="absolute inset-2 rounded-full border-2 border-white/20 border-dashed" />
-            <span className="text-white font-bold text-sm md:text-base relative z-10">
-              ${chip.value}
-            </span>
+            <img 
+              src={chip.image} 
+              alt={`$${chip.value} chip`}
+              className="w-full h-full object-contain drop-shadow-lg"
+            />
           </motion.button>
         ))}
       </div>

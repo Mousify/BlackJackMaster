@@ -7,6 +7,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Hand, StopCircle, PlayCircle, Trophy, Home, RotateCcw } from "lucide-react";
 import { Link } from "wouter";
 
+import casinoBgImg from "@assets/casino-background_1769865411534.jpg";
+import dealerAvatarImg from "@assets/dealer-avatar_1769865411537.png";
+import playerAvatarImg from "@assets/player-avatar_1769865411539.png";
+
 export default function Game() {
   const { 
     dealerHand, 
@@ -28,14 +32,21 @@ export default function Game() {
   const isPlaying = status === 'playing';
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden">
+    <div className="min-h-screen text-foreground flex flex-col relative overflow-hidden">
+      {/* Casino Background */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${casinoBgImg})` }}
+      >
+        <div className="absolute inset-0 bg-black/30" />
+      </div>
       
       {/* Navbar / Header */}
       <header className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10">
         <Link href="/">
           <button
             data-testid="button-home"
-            className="text-white/70 hover:text-white transition-colors flex items-center gap-2 font-medium bg-black/20 px-3 py-2 rounded-full hover:bg-black/30"
+            className="text-white/70 hover:text-white transition-colors flex items-center gap-2 font-medium bg-black/30 px-3 py-2 rounded-full hover:bg-black/40"
           >
             <Home className="w-4 h-4" />
             <span className="hidden sm:inline">Home</span>
@@ -46,7 +57,7 @@ export default function Game() {
             <button
               onClick={resetBalance}
               data-testid="button-reset-balance"
-              className="text-white/70 hover:text-white transition-colors flex items-center gap-2 font-medium bg-destructive/20 px-3 py-2 rounded-full hover:bg-destructive/30"
+              className="text-white/70 hover:text-white transition-colors flex items-center gap-2 font-medium bg-destructive/30 px-3 py-2 rounded-full hover:bg-destructive/40"
             >
               <RotateCcw className="w-4 h-4" />
               <span className="hidden sm:inline">Reset</span>
@@ -55,7 +66,7 @@ export default function Game() {
           <Link href="/stats">
             <button
               data-testid="button-stats-nav"
-              className="text-white/70 hover:text-white transition-colors flex items-center gap-2 font-medium bg-black/20 px-3 py-2 rounded-full hover:bg-black/30"
+              className="text-white/70 hover:text-white transition-colors flex items-center gap-2 font-medium bg-black/30 px-3 py-2 rounded-full hover:bg-black/40"
             >
               <Trophy className="w-4 h-4" />
               <span className="hidden sm:inline">Stats</span>
@@ -77,13 +88,20 @@ export default function Game() {
         
         {/* Dealer Section (Top) */}
         <div className="flex-1 flex flex-col justify-center items-center relative min-h-[180px]">
-          <div className="mb-4 text-white/50 font-mono text-sm uppercase tracking-widest flex items-center gap-2">
-            <span>Dealer</span>
-            {status !== 'idle' && (
-              <span className="bg-black/30 px-2 py-0.5 rounded text-white font-bold">
-                {status === 'playing' ? '?' : dealerScore}
-              </span>
-            )}
+          <div className="mb-4 flex items-center gap-3">
+            <img 
+              src={dealerAvatarImg} 
+              alt="Dealer"
+              className="w-10 h-10 rounded-full border-2 border-white/20"
+            />
+            <div className="text-white/50 font-mono text-sm uppercase tracking-widest flex items-center gap-2">
+              <span>Dealer</span>
+              {status !== 'idle' && (
+                <span className="bg-black/40 px-2 py-0.5 rounded text-white font-bold">
+                  {status === 'playing' ? '?' : dealerScore}
+                </span>
+              )}
+            </div>
           </div>
           
           <div className="relative h-36 md:h-48 w-full flex justify-center">
@@ -155,13 +173,20 @@ export default function Game() {
             </AnimatePresence>
           </div>
           
-          <div className="text-white/50 font-mono text-sm uppercase tracking-widest flex items-center gap-2">
-            <span>You</span>
-            {status !== 'idle' && (
-              <span className="bg-secondary/20 text-secondary px-2 py-0.5 rounded font-bold border border-secondary/20">
-                {playerScore}
-              </span>
-            )}
+          <div className="flex items-center gap-3">
+            <img 
+              src={playerAvatarImg} 
+              alt="Player"
+              className="w-10 h-10 rounded-full border-2 border-secondary/40"
+            />
+            <div className="text-white/50 font-mono text-sm uppercase tracking-widest flex items-center gap-2">
+              <span>You</span>
+              {status !== 'idle' && (
+                <span className="bg-secondary/20 text-secondary px-2 py-0.5 rounded font-bold border border-secondary/20">
+                  {playerScore}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
