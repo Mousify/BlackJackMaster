@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card, createDeck, calculateScore, GameStatus, GameResult } from '@/lib/blackjack-engine';
 import { useCreateGameResult } from './use-game-results';
+import { soundManager } from './use-sound';
 import confetti from 'canvas-confetti';
 
 const STARTING_BALANCE = 1000;
@@ -31,18 +32,26 @@ export function useBlackjack() {
 
   const updateBet = useCallback((amount: number) => {
     if (status === 'idle' || status === 'game-over') {
+      // Play chip sound based on change
+      if (amount > currentBet) {
+        soundManager.playSFX('chipSingle');
+      }
       setCurrentBet(amount);
     }
-  }, [status]);
+  }, [status, currentBet]);
 
   const resetBalance = useCallback(() => {
     setBalance(STARTING_BALANCE);
     setCurrentBet(0);
     localStorage.setItem('blackjack-balance', STARTING_BALANCE.toString());
+    soundManager.playSFX('buttonClick');
   }, []);
 
   const deal = useCallback(() => {
     if (currentBet <= 0) return; // Must place a bet
+
+    // Play deal sound
+    soundManager.playSFX('cardDeal');
 
     // Deduct bet from balance
     setBalance(prev => prev - currentBet);
@@ -77,6 +86,8 @@ export function useBlackjack() {
   const hit = useCallback(() => {
     if (status !== 'playing') return;
 
+    soundManager.playSFX('cardDeal');
+
     const newDeck = [...deck];
     const card = newDeck.pop()!;
     const newHand = [...playerHand, card];
@@ -90,6 +101,8 @@ export function useBlackjack() {
       setResult('bust');
       // Reveal dealer card for visual completeness
       setDealerHand(prev => prev.map(c => ({ ...c, isHidden: false })));
+      
+      soundManager.playSFX('lose');
       
       createResult.mutate({
         result: 'loss',
@@ -128,6 +141,17 @@ export function useBlackjack() {
     setResult(finalResult);
     processWinnings(finalResult);
     
+    // Play result sounds
+    if (finalResult === 'blackjack') {
+      soundManager.playSFX('victoryTheme');
+    } else if (finalResult === 'win') {
+      soundManager.playSFX('win');
+    } else if (finalResult === 'push') {
+      soundManager.playSFX('push');
+    } else {
+      soundManager.playSFX('lose');
+    }
+    
     // Save to DB
     createResult.mutate({
       result: finalResult === 'blackjack' || finalResult === 'win' ? 'win' : 
@@ -149,6 +173,7 @@ export function useBlackjack() {
     setStatus('dealer-turn');
     
     // Reveal hidden card
+    soundManager.playSFX('cardFlip');
     let currentDealerHand = dealerHand.map(c => ({ ...c, isHidden: false }));
     setDealerHand(currentDealerHand);
 
@@ -160,6 +185,7 @@ export function useBlackjack() {
       // Dealer hits on soft 17 (logic simplified to hit < 17)
       while (dScore < 17) {
         await new Promise(r => setTimeout(r, 800)); // Delay for dramatic effect
+        soundManager.playSFX('dealerHit');
         const card = currentDeck.pop()!;
         currentDealerHand = [...currentDealerHand, card];
         setDealerHand(currentDealerHand);
@@ -176,6 +202,7 @@ export function useBlackjack() {
 
   const stand = useCallback(() => {
     if (status !== 'playing') return;
+    soundManager.playSFX('dealerStand');
     dealerPlay();
   }, [status, dealerPlay]);
 

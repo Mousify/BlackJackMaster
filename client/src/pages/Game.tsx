@@ -1,10 +1,12 @@
+import { useEffect } from "react";
 import { useBlackjack } from "@/hooks/use-blackjack";
+import { useSound } from "@/hooks/use-sound";
 import { PlayingCard } from "@/components/PlayingCard";
 import { ActionButton } from "@/components/ActionButton";
 import { GameOverlay } from "@/components/GameOverlay";
 import { ChipSelector } from "@/components/ChipSelector";
 import { AnimatePresence, motion } from "framer-motion";
-import { Hand, StopCircle, PlayCircle, Trophy, Home, RotateCcw } from "lucide-react";
+import { Hand, StopCircle, PlayCircle, Trophy, Home, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { Link } from "wouter";
 
 import casinoBgImg from "@assets/casino-background_1769865411534.jpg";
@@ -28,8 +30,33 @@ export default function Game() {
     resetBalance
   } = useBlackjack();
 
+  const { playGameMusic, stopMusic, toggleMute, isMuted, playSFX } = useSound();
+
+  // Start game music when entering game page
+  useEffect(() => {
+    playGameMusic();
+    return () => {
+      stopMusic();
+    };
+  }, [playGameMusic, stopMusic]);
+
   const canDeal = status === 'idle' || status === 'game-over';
   const isPlaying = status === 'playing';
+
+  const handleDeal = () => {
+    playSFX('buttonClick');
+    deal();
+  };
+
+  const handleHit = () => {
+    playSFX('buttonClick');
+    hit();
+  };
+
+  const handleStand = () => {
+    playSFX('buttonClick');
+    stand();
+  };
 
   return (
     <div className="min-h-screen text-foreground flex flex-col relative overflow-hidden">
@@ -53,6 +80,13 @@ export default function Game() {
           </button>
         </Link>
         <div className="flex items-center gap-2">
+          <button
+            onClick={toggleMute}
+            data-testid="button-toggle-mute"
+            className="text-white/70 hover:text-white transition-colors flex items-center gap-2 font-medium bg-black/30 px-3 py-2 rounded-full hover:bg-black/40"
+          >
+            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
           {balance <= 0 && (
             <button
               onClick={resetBalance}
@@ -81,7 +115,7 @@ export default function Game() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] border-4 border-white/5 rounded-full opacity-20" />
       </div>
 
-      <GameOverlay result={result} onRestart={deal} currentBet={currentBet} />
+      <GameOverlay result={result} onRestart={handleDeal} currentBet={currentBet} />
 
       {/* Main Game Area */}
       <main className="flex-1 flex flex-col max-w-5xl mx-auto w-full p-4 pt-16 relative z-0">
@@ -209,7 +243,7 @@ export default function Game() {
             {canDeal ? (
               <div className="col-span-2 flex justify-center">
                 <ActionButton 
-                  onClick={deal} 
+                  onClick={handleDeal} 
                   className="w-full max-w-xs"
                   variant="primary"
                   disabled={currentBet <= 0 || balance < 0}
@@ -223,7 +257,7 @@ export default function Game() {
             ) : (
               <>
                 <ActionButton 
-                  onClick={hit} 
+                  onClick={handleHit} 
                   disabled={!isPlaying}
                   variant="primary"
                 >
@@ -234,7 +268,7 @@ export default function Game() {
                 </ActionButton>
                 
                 <ActionButton 
-                  onClick={stand} 
+                  onClick={handleStand} 
                   disabled={!isPlaying}
                   variant="destructive"
                 >

@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { PlayCircle, Trophy } from "lucide-react";
+import { PlayCircle, Trophy, Volume2, VolumeX } from "lucide-react";
+import { useSound } from "@/hooks/use-sound";
 
 import logoImg from "@assets/logo_1769865411538.png";
 import casinoBgImg from "@assets/casino-background_1769865411534.jpg";
@@ -10,12 +12,27 @@ import chip25Img from "@assets/chip-25_1769865411536.png";
 import chip100Img from "@assets/chip-100_1769865411536.png";
 
 export default function Landing() {
+  const { playMainTheme, stopMusic, toggleMute, isMuted, playSFX } = useSound();
+
   const chips = [
     { value: 1, image: chip1Img },
     { value: 5, image: chip5Img },
     { value: 25, image: chip25Img },
     { value: 100, image: chip100Img },
   ];
+
+  // Start main theme when entering landing page
+  useEffect(() => {
+    playMainTheme();
+    return () => {
+      stopMusic();
+    };
+  }, [playMainTheme, stopMusic]);
+
+  const handlePlayClick = () => {
+    playSFX('buttonClick');
+    playSFX('dealerWelcome');
+  };
 
   return (
     <div className="min-h-screen text-foreground flex flex-col relative overflow-hidden">
@@ -25,6 +42,17 @@ export default function Landing() {
         style={{ backgroundImage: `url(${casinoBgImg})` }}
       >
         <div className="absolute inset-0 bg-black/40" />
+      </div>
+
+      {/* Mute Button */}
+      <div className="absolute top-4 right-4 z-20">
+        <button
+          onClick={toggleMute}
+          data-testid="button-toggle-mute-landing"
+          className="text-white/70 hover:text-white transition-colors flex items-center gap-2 font-medium bg-black/30 px-3 py-2 rounded-full hover:bg-black/40"
+        >
+          {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+        </button>
       </div>
 
       {/* Decorative Table Ring */}
@@ -84,6 +112,7 @@ export default function Landing() {
         >
           <Link href="/game">
             <button
+              onClick={handlePlayClick}
               data-testid="button-play"
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-4 px-8 rounded-2xl text-xl flex items-center justify-center gap-3 transition-all shadow-lg shadow-primary/30"
             >
@@ -93,6 +122,7 @@ export default function Landing() {
           </Link>
           <Link href="/stats">
             <button
+              onClick={() => playSFX('buttonClick')}
               data-testid="button-stats"
               className="w-full bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-8 rounded-2xl text-lg flex items-center justify-center gap-3 transition-all border border-white/10"
             >
