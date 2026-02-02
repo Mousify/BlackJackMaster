@@ -146,7 +146,8 @@ export async function registerRoutes(
 
   // Upload avatar
   app.post('/api/users/:id/avatar', upload.single('avatar'), async (req, res) => {
-    const id = parseInt(req.params.id, 10);
+    const idParam = req.params.id;
+    const id = parseInt(Array.isArray(idParam) ? idParam[0] : idParam, 10);
     if (isNaN(id)) {
       return res.status(400).json({ message: 'Invalid user ID' });
     }
