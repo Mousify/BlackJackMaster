@@ -1,19 +1,22 @@
 import { useEffect } from "react";
 import { useBlackjack } from "@/hooks/use-blackjack";
 import { useSound } from "@/hooks/use-sound";
+import { useAuth } from "@/contexts/AuthContext";
+import { RequireAuth } from "@/components/RequireAuth";
 import { PlayingCard } from "@/components/PlayingCard";
 import { ActionButton } from "@/components/ActionButton";
 import { GameOverlay } from "@/components/GameOverlay";
 import { ChipSelector } from "@/components/ChipSelector";
 import { AnimatePresence, motion } from "framer-motion";
-import { Hand, StopCircle, PlayCircle, Trophy, Home, RotateCcw, Volume2, VolumeX } from "lucide-react";
+import { Hand, StopCircle, PlayCircle, Trophy, Home, RotateCcw, Volume2, VolumeX, User } from "lucide-react";
 import { Link } from "wouter";
 
 import casinoBgImg from "@assets/casino-background_1769865411534.jpg";
 import dealerAvatarImg from "@assets/dealer-avatar_1769865411537.png";
 import playerAvatarImg from "@assets/player-avatar_1769865411539.png";
 
-export default function Game() {
+function GameContent() {
+  const { user } = useAuth();
   const { 
     dealerHand, 
     playerHand, 
@@ -97,6 +100,18 @@ export default function Game() {
               <span className="hidden sm:inline">Reset</span>
             </button>
           )}
+          <Link href="/profile">
+            <button
+              data-testid="button-profile-nav"
+              className="text-white/70 hover:text-white transition-colors flex items-center gap-2 font-medium bg-black/30 px-3 py-2 rounded-full hover:bg-black/40"
+            >
+              <img 
+                src={user?.avatarUrl || playerAvatarImg} 
+                alt="Profile"
+                className="w-5 h-5 rounded-full object-cover"
+              />
+            </button>
+          </Link>
           <Link href="/stats">
             <button
               data-testid="button-stats-nav"
@@ -209,12 +224,12 @@ export default function Game() {
           
           <div className="flex items-center gap-3">
             <img 
-              src={playerAvatarImg} 
+              src={user?.avatarUrl || playerAvatarImg} 
               alt="Player"
-              className="w-10 h-10 rounded-full border-2 border-secondary/40"
+              className="w-10 h-10 rounded-full border-2 border-secondary/40 object-cover"
             />
             <div className="text-white/50 font-mono text-sm uppercase tracking-widest flex items-center gap-2">
-              <span>You</span>
+              <span>{user?.username || 'You'}</span>
               {status !== 'idle' && (
                 <span className="bg-secondary/20 text-secondary px-2 py-0.5 rounded font-bold border border-secondary/20">
                   {playerScore}
@@ -283,5 +298,13 @@ export default function Game() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function Game() {
+  return (
+    <RequireAuth>
+      <GameContent />
+    </RequireAuth>
   );
 }

@@ -1,34 +1,45 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card, createDeck, calculateScore, GameStatus, GameResult } from '@/lib/blackjack-engine';
-import { useCreateGameResult } from './use-game-results';
 import { soundManager } from './use-sound';
+import { useAuth } from '@/contexts/AuthContext';
+import { apiRequest } from '@/lib/queryClient';
 import confetti from 'canvas-confetti';
 
 const STARTING_BALANCE = 1000;
 
 export function useBlackjack() {
+  const { user, updateUser } = useAuth();
   const [deck, setDeck] = useState<Card[]>([]);
   const [playerHand, setPlayerHand] = useState<Card[]>([]);
   const [dealerHand, setDealerHand] = useState<Card[]>([]);
   const [status, setStatus] = useState<GameStatus>('idle');
   const [result, setResult] = useState<GameResult>(null);
-  const [balance, setBalance] = useState<number>(() => {
-    const saved = localStorage.getItem('blackjack-balance');
-    return saved ? parseInt(saved, 10) : STARTING_BALANCE;
-  });
+  const [balance, setBalance] = useState<number>(user?.balance ?? STARTING_BALANCE);
   const [currentBet, setCurrentBet] = useState<number>(0);
-  
-  const createResult = useCreateGameResult();
+
+  // Sync balance with user from server
+  useEffect(() => {
+    if (user?.balance !== undefined) {
+      setBalance(user.balance);
+    }
+  }, [user?.balance]);
 
   // Initialize deck on mount
   useEffect(() => {
     setDeck(createDeck());
   }, []);
 
-  // Persist balance to localStorage
-  useEffect(() => {
-    localStorage.setItem('blackjack-balance', balance.toString());
-  }, [balance]);
+  // Save balance to server when it changes (debounced)
+  const saveBalance = useCallback(async (newBalance: number) => {
+    if (user?.id) {
+      try {
+        await apiRequest('PATCH', `/api/users/${user.id}`, { balance: newBalance });
+        updateUser({ balance: newBalance });
+      } catch (err) {
+        // Ignore errors
+      }
+    }
+  }, [user?.id, updateUser]);
 
   const updateBet = useCallback((amount: number) => {
     if (status === 'idle' || status === 'game-over') {
@@ -43,9 +54,9 @@ export function useBlackjack() {
   const resetBalance = useCallback(() => {
     setBalance(STARTING_BALANCE);
     setCurrentBet(0);
-    localStorage.setItem('blackjack-balance', STARTING_BALANCE.toString());
+    saveBalance(STARTING_BALANCE);
     soundManager.playSFX('buttonClick');
-  }, []);
+  }, [saveBalance]);
 
   const deal = useCallback(() => {
     if (currentBet <= 0) return; // Must place a bet
@@ -54,7 +65,8 @@ export function useBlackjack() {
     soundManager.playSFX('cardDeal');
 
     // Deduct bet from balance
-    setBalance(prev => prev - currentBet);
+    const newBalance = balance - currentBet;
+    setBalance(newBalance);
 
     // If deck is running low (penetration < 20 cards), reshuffle
     let currentDeck = [...deck];
@@ -81,7 +93,23 @@ export function useBlackjack() {
         // This will be handled by the stand function
       }, 500);
     }
-  }, [deck, currentBet]);
+  }, [deck, currentBet, balance]);
+
+  const saveGameResult = useCallback(async (gameResult: 'win' | 'loss' | 'push', pScore: number, dScore: number) => {
+    if (user?.id) {
+      try {
+        await apiRequest('POST', '/api/results', {
+          userId: user.id,
+          result: gameResult,
+          playerScore: pScore,
+          dealerScore: dScore,
+          betAmount: currentBet,
+        });
+      } catch (err) {
+        // Ignore
+      }
+    }
+  }, [user?.id, currentBet]);
 
   const hit = useCallback(() => {
     if (status !== 'playing') return;
@@ -104,27 +132,30 @@ export function useBlackjack() {
       
       soundManager.playSFX('lose');
       
-      createResult.mutate({
-        result: 'loss',
-        playerScore: score,
-        dealerScore: calculateScore(dealerHand),
-      });
+      // Save balance (bet was already deducted)
+      saveBalance(balance);
+      saveGameResult('loss', score, calculateScore(dealerHand));
     }
-  }, [deck, playerHand, status, dealerHand, createResult]);
+  }, [deck, playerHand, status, dealerHand, balance, saveBalance, saveGameResult]);
 
-  const processWinnings = useCallback((finalResult: GameResult) => {
+  const processWinnings = useCallback((finalResult: GameResult): number => {
+    let newBalance = balance;
+    
     if (finalResult === 'blackjack') {
       // Blackjack pays 3:2
-      setBalance(prev => prev + currentBet + Math.floor(currentBet * 1.5));
+      newBalance = balance + currentBet + Math.floor(currentBet * 1.5);
     } else if (finalResult === 'win') {
       // Regular win pays 1:1
-      setBalance(prev => prev + currentBet * 2);
+      newBalance = balance + currentBet * 2;
     } else if (finalResult === 'push') {
       // Push returns the bet
-      setBalance(prev => prev + currentBet);
+      newBalance = balance + currentBet;
     }
     // Loss: bet was already deducted
-  }, [currentBet]);
+    
+    setBalance(newBalance);
+    return newBalance;
+  }, [currentBet, balance]);
 
   const determineWinner = useCallback((pScore: number, dScore: number) => {
     let finalResult: GameResult = 'loss';
@@ -139,7 +170,7 @@ export function useBlackjack() {
     else finalResult = 'push';
 
     setResult(finalResult);
-    processWinnings(finalResult);
+    const newBalance = processWinnings(finalResult);
     
     // Play result sounds
     if (finalResult === 'blackjack') {
@@ -152,13 +183,14 @@ export function useBlackjack() {
       soundManager.playSFX('lose');
     }
     
-    // Save to DB
-    createResult.mutate({
-      result: finalResult === 'blackjack' || finalResult === 'win' ? 'win' : 
-              finalResult === 'push' ? 'push' : 'loss',
-      playerScore: pScore,
-      dealerScore: dScore
-    });
+    // Save to server
+    saveBalance(newBalance);
+    saveGameResult(
+      finalResult === 'blackjack' || finalResult === 'win' ? 'win' : 
+      finalResult === 'push' ? 'push' : 'loss',
+      pScore,
+      dScore
+    );
 
     if (finalResult === 'win' || finalResult === 'blackjack') {
       confetti({
@@ -167,7 +199,7 @@ export function useBlackjack() {
         origin: { y: 0.6 }
       });
     }
-  }, [playerHand, createResult, processWinnings]);
+  }, [playerHand, processWinnings, saveBalance, saveGameResult]);
 
   const dealerPlay = useCallback(async () => {
     setStatus('dealer-turn');

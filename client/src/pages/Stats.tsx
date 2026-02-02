@@ -1,7 +1,10 @@
-import { useGameResults } from "@/hooks/use-game-results";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { ArrowLeft, Trophy, XCircle, MinusCircle, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { RequireAuth } from "@/components/RequireAuth";
+import type { GameResult } from "@shared/schema";
 
 import casinoBgImg from "@assets/casino-background_1769865411534.jpg";
 import firstWinImg from "@assets/first-win_1769865411538.png";
@@ -18,8 +21,18 @@ interface Achievement {
   unlocked: boolean;
 }
 
-export default function Stats() {
-  const { data: results, isLoading } = useGameResults();
+function StatsContent() {
+  const { user } = useAuth();
+  
+  const { data: results, isLoading } = useQuery<GameResult[]>({
+    queryKey: ['/api/results/user', user?.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/results/user/${user?.id}`);
+      if (!res.ok) throw new Error('Failed to fetch results');
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
 
   const stats = results ? {
     total: results.length,
@@ -87,7 +100,10 @@ export default function Stats() {
             <Link href="/" className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors">
               <ArrowLeft className="w-6 h-6" />
             </Link>
-            <h1 className="text-3xl md:text-4xl font-display font-bold">Game History</h1>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-display font-bold">Your Stats</h1>
+              <p className="text-white/50 text-sm">{user?.username}'s game history</p>
+            </div>
           </header>
 
           {isLoading ? (
@@ -232,5 +248,13 @@ export default function Stats() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Stats() {
+  return (
+    <RequireAuth>
+      <StatsContent />
+    </RequireAuth>
   );
 }
