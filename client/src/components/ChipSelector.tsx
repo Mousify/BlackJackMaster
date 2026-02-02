@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
+import { soundManager } from "@/hooks/use-sound";
 
 import chip1Img from "@assets/chip-1_1769865411535.png";
 import chip5Img from "@assets/chip-5_1769865411535.png";
@@ -23,43 +24,85 @@ const CHIP_VALUES = [
   { value: 500, image: chip500Img },
 ];
 
+const CHIP_MAP: Record<number, string> = {
+  1: chip1Img,
+  5: chip5Img,
+  25: chip25Img,
+  100: chip100Img,
+  500: chip500Img,
+};
+
 // Convert a bet amount to optimal chip breakdown (rounds up smaller chips to bigger ones)
-function getChipBreakdown(amount: number): { value: number; count: number; image: string }[] {
-  const breakdown: { value: number; count: number; image: string }[] = [];
+function getChipBreakdown(amount: number): { value: number; count: number }[] {
+  const breakdown: { value: number; count: number }[] = [];
   let remaining = amount;
   
   // Start from highest denomination
-  const sortedChips = [...CHIP_VALUES].sort((a, b) => b.value - a.value);
+  const sortedValues = [500, 100, 25, 5, 1];
   
-  for (const chip of sortedChips) {
-    const count = Math.floor(remaining / chip.value);
+  for (const value of sortedValues) {
+    const count = Math.floor(remaining / value);
     if (count > 0) {
-      breakdown.push({ value: chip.value, count, image: chip.image });
-      remaining -= count * chip.value;
+      breakdown.push({ value, count });
+      remaining -= count * value;
     }
   }
   
   return breakdown;
 }
 
-// Flatten breakdown into individual chips for stacking display
-function getStackedChips(amount: number): { value: number; image: string; id: number }[] {
+// Generate scattered positions for chips of the same value (they stack)
+function getScatteredChipsWithPositions(amount: number): { 
+  value: number; 
+  image: string; 
+  id: string;
+  x: number;
+  y: number;
+  rotation: number;
+  stackIndex: number;
+}[] {
   const breakdown = getChipBreakdown(amount);
-  const chips: { value: number; image: string; id: number }[] = [];
-  let id = 0;
+  const chips: { 
+    value: number; 
+    image: string; 
+    id: string;
+    x: number;
+    y: number;
+    rotation: number;
+    stackIndex: number;
+  }[] = [];
   
-  for (const { value, count, image } of breakdown) {
-    for (let i = 0; i < Math.min(count, 5); i++) { // Max 5 of each type shown
-      chips.push({ value, image, id: id++ });
+  // Define scatter positions for different chip types (each type gets its own area)
+  const scatterPositions = [
+    { x: -20, y: -15 },  // Top left area
+    { x: 20, y: -10 },   // Top right area
+    { x: -15, y: 20 },   // Bottom left area
+    { x: 25, y: 15 },    // Bottom right area
+    { x: 0, y: 0 },      // Center
+  ];
+  
+  breakdown.forEach((item, typeIndex) => {
+    const basePos = scatterPositions[typeIndex % scatterPositions.length];
+    const maxStack = Math.min(item.count, 5); // Max 5 shown per type
+    
+    for (let i = 0; i < maxStack; i++) {
+      chips.push({
+        value: item.value,
+        image: CHIP_MAP[item.value],
+        id: `${item.value}-${i}`,
+        x: basePos.x + (Math.random() * 6 - 3), // Small random offset
+        y: basePos.y + (Math.random() * 6 - 3),
+        rotation: Math.random() * 20 - 10,
+        stackIndex: i,
+      });
     }
-  }
+  });
   
   return chips;
 }
 
 export function ChipSelector({ balance, currentBet, onBetChange, disabled }: ChipSelectorProps) {
-  const stackedChips = useMemo(() => getStackedChips(currentBet), [currentBet]);
-  const chipBreakdown = useMemo(() => getChipBreakdown(currentBet), [currentBet]);
+  const scatteredChips = useMemo(() => getScatteredChipsWithPositions(currentBet), [currentBet]);
   
   const addToBet = (amount: number) => {
     if (disabled) return;
@@ -68,56 +111,96 @@ export function ChipSelector({ balance, currentBet, onBetChange, disabled }: Chi
     }
   };
 
-  const clearBet = () => {
+  const removeFromBet = (chipValue: number) => {
     if (disabled) return;
-    onBetChange(0);
+    soundManager.playSFX('chipSingle');
+    onBetChange(Math.max(0, currentBet - chipValue));
   };
 
   return (
-    <div className="flex flex-col md:flex-row items-center gap-6">
-      {/* Betting Circle Area (Left side on desktop) */}
-      <div className="relative order-2 md:order-1">
+    <div className="flex flex-col items-center gap-6">
+      {/* Balance Display - Centered */}
+      <div className="text-center">
+        <p className="text-xs uppercase tracking-wider text-white/50">Balance</p>
+        <p className="font-bold text-xl font-display text-secondary">${balance}</p>
+      </div>
+
+      {/* Chips Row - Centered */}
+      <div className="flex gap-2 justify-center">
+        {CHIP_VALUES.map((chip) => (
+          <motion.button
+            key={chip.value}
+            whileHover={{ scale: disabled ? 1 : 1.1, y: disabled ? 0 : -5 }}
+            whileTap={{ scale: disabled ? 1 : 0.95 }}
+            onClick={() => addToBet(chip.value)}
+            disabled={disabled || currentBet + chip.value > balance}
+            data-testid={`chip-${chip.value}`}
+            className={cn(
+              "w-10 h-10 md:w-12 md:h-12 transition-all",
+              disabled || currentBet + chip.value > balance
+                ? "opacity-40 cursor-not-allowed grayscale"
+                : "cursor-pointer hover:brightness-110"
+            )}
+          >
+            <img 
+              src={chip.image} 
+              alt={`$${chip.value} chip`}
+              className="w-full h-full object-contain drop-shadow-lg"
+            />
+          </motion.button>
+        ))}
+      </div>
+
+      {/* Betting Circle Area */}
+      <div className="relative">
         <div 
           className={cn(
-            "w-28 h-28 md:w-32 md:h-32 rounded-full border-4 border-dashed transition-all duration-300",
+            "w-40 h-40 md:w-48 md:h-48 rounded-full border-4 border-dashed transition-all duration-300",
             "flex items-center justify-center relative",
             currentBet > 0 
               ? "border-secondary/60 bg-secondary/10" 
               : "border-white/20 bg-white/5"
           )}
         >
-          {/* Stacked chips in the circle */}
-          <div className="relative w-16 h-16 md:w-20 md:h-20">
+          {/* Scattered chips in the circle - clickable to remove */}
+          <div className="relative w-32 h-32 md:w-40 md:h-40">
             <AnimatePresence>
-              {stackedChips.map((chip, index) => (
-                <motion.img
-                  key={`${chip.value}-${chip.id}`}
-                  src={chip.image}
-                  alt={`$${chip.value} chip`}
-                  initial={{ scale: 0, y: 50, opacity: 0 }}
+              {scatteredChips.map((chip) => (
+                <motion.button
+                  key={chip.id}
+                  onClick={() => removeFromBet(chip.value)}
+                  initial={{ scale: 0, opacity: 0 }}
                   animate={{ 
                     scale: 1, 
-                    y: -index * 4, // Stack offset
                     opacity: 1,
-                    rotate: (index * 15) % 30 - 15 // Slight rotation variation
+                    x: chip.x,
+                    y: chip.y - (chip.stackIndex * 3), // Stack same chips vertically
+                    rotate: chip.rotation,
                   }}
                   exit={{ scale: 0, opacity: 0 }}
                   transition={{ 
                     type: "spring", 
                     stiffness: 400, 
                     damping: 25,
-                    delay: index * 0.02
                   }}
-                  className="absolute w-full h-full object-contain drop-shadow-lg"
-                  style={{ zIndex: index }}
-                />
+                  whileHover={{ scale: 1.15, zIndex: 100 }}
+                  className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 cursor-pointer"
+                  style={{ zIndex: chip.stackIndex }}
+                  data-testid={`betting-chip-${chip.value}`}
+                >
+                  <img 
+                    src={chip.image}
+                    alt={`$${chip.value} chip`}
+                    className="w-full h-full object-contain drop-shadow-lg hover:brightness-125 transition-all"
+                  />
+                </motion.button>
               ))}
             </AnimatePresence>
             
             {/* Empty state */}
             {currentBet === 0 && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-white/30 text-xs font-mono uppercase">BET</span>
+                <span className="text-white/30 text-sm font-mono uppercase">PLACE BET</span>
               </div>
             )}
           </div>
@@ -127,75 +210,12 @@ export function ChipSelector({ balance, currentBet, onBetChange, disabled }: Chi
             <motion.div 
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-secondary text-black font-bold text-sm px-3 py-1 rounded-full shadow-lg"
+              className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-secondary text-black font-bold text-base px-4 py-1.5 rounded-full shadow-lg"
             >
               ${currentBet}
             </motion.div>
           )}
         </div>
-        
-        {/* Chip breakdown summary */}
-        {chipBreakdown.length > 0 && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="absolute -top-6 left-1/2 -translate-x-1/2 flex gap-1 text-xs text-white/50"
-          >
-            {chipBreakdown.map(({ value, count }) => (
-              <span key={value}>{count}x${value}</span>
-            ))}
-          </motion.div>
-        )}
-      </div>
-
-      {/* Balance and Controls (Right side on desktop) */}
-      <div className="flex flex-col items-center gap-4 order-1 md:order-2">
-        {/* Balance Display */}
-        <div className="flex items-center gap-6 text-white/80">
-          <div className="text-center">
-            <p className="text-xs uppercase tracking-wider text-white/50">Balance</p>
-            <p className="font-bold text-xl font-display text-secondary">${balance}</p>
-          </div>
-        </div>
-
-        {/* Chips */}
-        <div className="flex gap-2 flex-wrap justify-center">
-          {CHIP_VALUES.map((chip) => (
-            <motion.button
-              key={chip.value}
-              whileHover={{ scale: disabled ? 1 : 1.1, y: disabled ? 0 : -5 }}
-              whileTap={{ scale: disabled ? 1 : 0.95 }}
-              onClick={() => addToBet(chip.value)}
-              disabled={disabled || currentBet + chip.value > balance}
-              data-testid={`chip-${chip.value}`}
-              className={cn(
-                "w-12 h-12 md:w-14 md:h-14 transition-all",
-                disabled || currentBet + chip.value > balance
-                  ? "opacity-40 cursor-not-allowed grayscale"
-                  : "cursor-pointer hover:brightness-110"
-              )}
-            >
-              <img 
-                src={chip.image} 
-                alt={`$${chip.value} chip`}
-                className="w-full h-full object-contain drop-shadow-lg"
-              />
-            </motion.button>
-          ))}
-        </div>
-
-        {/* Clear Bet Button */}
-        {currentBet > 0 && !disabled && (
-          <motion.button
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            onClick={clearBet}
-            data-testid="button-clear-bet"
-            className="text-white/60 hover:text-white text-sm underline transition-colors"
-          >
-            Clear Bet
-          </motion.button>
-        )}
       </div>
     </div>
   );
