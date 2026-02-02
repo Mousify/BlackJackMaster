@@ -118,44 +118,12 @@ export function ChipSelector({ balance, currentBet, onBetChange, disabled }: Chi
   };
 
   return (
-    <div className="flex flex-col items-center gap-6">
-      {/* Balance Display - Centered */}
-      <div className="text-center">
-        <p className="text-xs uppercase tracking-wider text-white/50">Balance</p>
-        <p className="font-bold text-xl font-display text-secondary">${balance}</p>
-      </div>
-
-      {/* Chips Row - Centered */}
-      <div className="flex gap-2 justify-center">
-        {CHIP_VALUES.map((chip) => (
-          <motion.button
-            key={chip.value}
-            whileHover={{ scale: disabled ? 1 : 1.1, y: disabled ? 0 : -5 }}
-            whileTap={{ scale: disabled ? 1 : 0.95 }}
-            onClick={() => addToBet(chip.value)}
-            disabled={disabled || currentBet + chip.value > balance}
-            data-testid={`chip-${chip.value}`}
-            className={cn(
-              "w-10 h-10 md:w-12 md:h-12 transition-all",
-              disabled || currentBet + chip.value > balance
-                ? "opacity-40 cursor-not-allowed grayscale"
-                : "cursor-pointer hover:brightness-110"
-            )}
-          >
-            <img 
-              src={chip.image} 
-              alt={`$${chip.value} chip`}
-              className="w-full h-full object-contain drop-shadow-lg"
-            />
-          </motion.button>
-        ))}
-      </div>
-
-      {/* Betting Circle Area */}
-      <div className="relative">
+    <div className="flex flex-row items-center justify-center gap-6 md:gap-10">
+      {/* Betting Circle Area - Left Side */}
+      <div className="relative flex-shrink-0">
         <div 
           className={cn(
-            "w-40 h-40 md:w-48 md:h-48 rounded-full border-4 border-dashed transition-all duration-300",
+            "w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-dashed transition-all duration-300",
             "flex items-center justify-center relative",
             currentBet > 0 
               ? "border-secondary/60 bg-secondary/10" 
@@ -163,7 +131,7 @@ export function ChipSelector({ balance, currentBet, onBetChange, disabled }: Chi
           )}
         >
           {/* Scattered chips in the circle - clickable to remove */}
-          <div className="relative w-32 h-32 md:w-40 md:h-40">
+          <div className="relative w-24 h-24 md:w-32 md:h-32">
             <AnimatePresence>
               {scatteredChips.map((chip) => (
                 <motion.button
@@ -184,7 +152,7 @@ export function ChipSelector({ balance, currentBet, onBetChange, disabled }: Chi
                     damping: 25,
                   }}
                   whileHover={{ scale: 1.15, zIndex: 100 }}
-                  className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 cursor-pointer"
+                  className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 md:w-9 md:h-9 cursor-pointer"
                   style={{ zIndex: chip.stackIndex }}
                   data-testid={`betting-chip-${chip.value}`}
                 >
@@ -200,7 +168,7 @@ export function ChipSelector({ balance, currentBet, onBetChange, disabled }: Chi
             {/* Empty state */}
             {currentBet === 0 && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-white/30 text-sm font-mono uppercase">PLACE BET</span>
+                <span className="text-white/30 text-xs font-mono uppercase">BET</span>
               </div>
             )}
           </div>
@@ -210,11 +178,46 @@ export function ChipSelector({ balance, currentBet, onBetChange, disabled }: Chi
             <motion.div 
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-secondary text-black font-bold text-base px-4 py-1.5 rounded-full shadow-lg"
+              className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-secondary text-black font-bold text-sm px-3 py-1 rounded-full shadow-lg"
             >
               ${currentBet}
             </motion.div>
           )}
+        </div>
+      </div>
+
+      {/* Balance and Chips - Right Side */}
+      <div className="flex flex-col items-center gap-3">
+        {/* Balance Display */}
+        <div className="text-center">
+          <p className="text-xs uppercase tracking-wider text-white/50">Balance</p>
+          <p className="font-bold text-lg md:text-xl font-display text-secondary">${balance}</p>
+        </div>
+
+        {/* Chips */}
+        <div className="flex gap-1.5 md:gap-2 flex-wrap justify-center max-w-[180px]">
+          {CHIP_VALUES.map((chip) => (
+            <motion.button
+              key={chip.value}
+              whileHover={{ scale: disabled ? 1 : 1.1, y: disabled ? 0 : -3 }}
+              whileTap={{ scale: disabled ? 1 : 0.95 }}
+              onClick={() => addToBet(chip.value)}
+              disabled={disabled || currentBet + chip.value > balance}
+              data-testid={`chip-${chip.value}`}
+              className={cn(
+                "w-9 h-9 md:w-11 md:h-11 transition-all",
+                disabled || currentBet + chip.value > balance
+                  ? "opacity-40 cursor-not-allowed grayscale"
+                  : "cursor-pointer hover:brightness-110"
+              )}
+            >
+              <img 
+                src={chip.image} 
+                alt={`$${chip.value} chip`}
+                className="w-full h-full object-contain drop-shadow-lg"
+              />
+            </motion.button>
+          ))}
         </div>
       </div>
     </div>
