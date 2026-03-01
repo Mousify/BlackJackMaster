@@ -124,6 +124,15 @@ export default function Profile() {
     setLocation("/");
   };
 
+  const handleBack = () => {
+    playSFX('buttonClick');
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      setLocation("/");
+    }
+  };
+
   return (
     <div className="min-h-screen text-foreground flex flex-col relative overflow-hidden">
       {/* Background */}
@@ -136,16 +145,14 @@ export default function Profile() {
 
       {/* Header */}
       <header className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-20">
-        <Link href="/">
-          <button
-            onClick={() => playSFX('buttonClick')}
-            data-testid="button-back"
-            className="text-white/70 hover:text-white transition-colors flex items-center gap-2 font-medium bg-black/30 px-3 py-2 rounded-full hover:bg-black/40"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
-        </Link>
+        <button
+          onClick={handleBack}
+          data-testid="button-back"
+          className="text-white/70 hover:text-white transition-colors flex items-center gap-2 font-medium bg-black/30 px-3 py-2 rounded-full hover:bg-black/40"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
         <button
           onClick={handleLogout}
           data-testid="button-logout"

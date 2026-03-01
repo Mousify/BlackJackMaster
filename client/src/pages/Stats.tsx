@@ -89,6 +89,15 @@ function StatsContent() {
     }
   ];
 
+  const handleBack = () => {
+    playSFX('buttonClick');
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = "/";
+    }
+  };
+
   return (
     <div className="min-h-screen text-foreground relative overflow-hidden">
       {/* Casino Background */}
@@ -102,9 +111,12 @@ function StatsContent() {
       <div className="relative z-10 p-4 md:p-8">
         <div className="max-w-4xl mx-auto">
           <header className="flex items-center gap-4 mb-8 md:mb-12">
-            <Link href="/" className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors" onClick={() => playSFX('buttonClick')}>
+            <button 
+              onClick={handleBack}
+              className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            >
               <ArrowLeft className="w-6 h-6" />
-            </Link>
+            </button>
             <div>
               <h1 className="text-3xl md:text-4xl font-display font-bold">Your Stats</h1>
               <p className="text-white/50 text-sm">{user?.username}'s game history</p>
