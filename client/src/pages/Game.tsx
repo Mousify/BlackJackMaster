@@ -38,10 +38,7 @@ function GameContent() {
   // Start game music when entering game page
   useEffect(() => {
     playGameMusic();
-    return () => {
-      stopMusic();
-    };
-  }, [playGameMusic, stopMusic]);
+  }, [playGameMusic]);
 
   const canDeal = status === 'idle' || status === 'game-over';
   const isPlaying = status === 'playing';

@@ -27,10 +27,7 @@ export default function Landing() {
   // Start main theme when entering landing page
   useEffect(() => {
     playMainTheme();
-    return () => {
-      stopMusic();
-    };
-  }, [playMainTheme, stopMusic]);
+  }, [playMainTheme]);
 
   const handlePlayClick = () => {
     playSFX('buttonClick');

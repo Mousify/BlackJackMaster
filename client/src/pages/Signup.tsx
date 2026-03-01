@@ -57,6 +57,7 @@ export default function Signup() {
       <div className="absolute top-4 left-4 z-20">
         <Link href="/">
           <button
+            onClick={() => playSFX('buttonClick')}
             data-testid="button-back"
             className="text-white/70 hover:text-white transition-colors flex items-center gap-2 font-medium bg-black/30 px-3 py-2 rounded-full hover:bg-black/40"
           >

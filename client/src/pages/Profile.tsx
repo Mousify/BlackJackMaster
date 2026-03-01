@@ -11,9 +11,17 @@ import playerAvatarImg from "@assets/player-avatar_1769865411539.png";
 
 export default function Profile() {
   const { user, updateUser, logout, refreshUser } = useAuth();
-  const { playSFX } = useSound();
+  const { playMainTheme, playSFX } = useSound();
   const [, setLocation] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useState(() => {
+    playMainTheme();
+  });
+
+  useEffect(() => {
+    playMainTheme();
+  }, [playMainTheme]);
 
   const [username, setUsername] = useState(user?.username || "");
   const [error, setError] = useState("");
@@ -130,6 +138,7 @@ export default function Profile() {
       <header className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-20">
         <Link href="/">
           <button
+            onClick={() => playSFX('buttonClick')}
             data-testid="button-back"
             className="text-white/70 hover:text-white transition-colors flex items-center gap-2 font-medium bg-black/30 px-3 py-2 rounded-full hover:bg-black/40"
           >

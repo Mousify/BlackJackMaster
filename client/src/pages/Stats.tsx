@@ -23,6 +23,11 @@ interface Achievement {
 
 function StatsContent() {
   const { user } = useAuth();
+  const { playMainTheme, playSFX } = useSound();
+  
+  useEffect(() => {
+    playMainTheme();
+  }, [playMainTheme]);
   
   const { data: results, isLoading } = useQuery<GameResult[]>({
     queryKey: ['/api/results/user', user?.id],
@@ -97,7 +102,7 @@ function StatsContent() {
       <div className="relative z-10 p-4 md:p-8">
         <div className="max-w-4xl mx-auto">
           <header className="flex items-center gap-4 mb-8 md:mb-12">
-            <Link href="/" className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors">
+            <Link href="/" className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors" onClick={() => playSFX('buttonClick')}>
               <ArrowLeft className="w-6 h-6" />
             </Link>
             <div>

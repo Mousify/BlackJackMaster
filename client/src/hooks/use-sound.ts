@@ -51,6 +51,7 @@ class SoundManager {
   private currentMusicType: 'main' | 'game' | null = null;
   private gameMusicTracks = [gameMusic1, gameMusic2];
   private isMuted = false;
+  private hasInteracted = false;
 
   static getInstance(): SoundManager {
     if (!SoundManager.instance) {
@@ -63,6 +64,18 @@ class SoundManager {
     // Load mute preference from localStorage
     const saved = localStorage.getItem('blackjack-muted');
     this.isMuted = saved === 'true';
+
+    // Track first interaction to resume audio context if needed
+    const handleInteraction = () => {
+      this.hasInteracted = true;
+      if (this.musicAudio && this.musicAudio.paused && this.currentMusicType) {
+        this.musicAudio.play().catch(() => {});
+      }
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+    };
+    window.addEventListener('click', handleInteraction);
+    window.addEventListener('keydown', handleInteraction);
   }
 
   getMuted(): boolean {
@@ -100,6 +113,12 @@ class SoundManager {
       return; // Already playing
     }
     
+    // If it's already main but paused (maybe due to autoplay block), try playing again
+    if (this.currentMusicType === 'main' && this.musicAudio && this.musicAudio.paused) {
+       this.musicAudio.play().catch(() => {});
+       return;
+    }
+
     this.stopMusic();
     this.musicAudio = new Audio(mainThemeMusic);
     this.musicAudio.volume = MUSIC_VOLUME;
@@ -117,6 +136,11 @@ class SoundManager {
       return; // Already playing game music
     }
     
+    if (this.currentMusicType === 'game' && this.musicAudio && this.musicAudio.paused) {
+       this.musicAudio.play().catch(() => {});
+       return;
+    }
+
     this.stopMusic();
     this.playRandomGameTrack();
   }
@@ -130,7 +154,9 @@ class SoundManager {
     
     // When track ends, play another random track
     this.musicAudio.addEventListener('ended', () => {
-      this.playRandomGameTrack();
+      if (this.currentMusicType === 'game') {
+        this.playRandomGameTrack();
+      }
     });
     
     this.musicAudio.play().catch(() => {

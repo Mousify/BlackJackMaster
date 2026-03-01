@@ -88,12 +88,11 @@ export function useBlackjack() {
     // Check for natural Blackjack immediately
     const pScore = calculateScore([pCard1, pCard2]);
     if (pScore === 21) {
-      // Trigger dealer reveal flow
       setTimeout(() => {
-        // This will be handled by the stand function
-      }, 500);
+        stand();
+      }, 1000);
     }
-  }, [deck, currentBet, balance]);
+  }, [deck, currentBet, balance, stand]);
 
   const saveGameResult = useCallback(async (gameResult: 'win' | 'loss' | 'push', pScore: number, dScore: number) => {
     if (user?.id) {
