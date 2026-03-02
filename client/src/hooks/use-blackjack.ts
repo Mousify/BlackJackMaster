@@ -52,6 +52,22 @@ export function useBlackjack() {
     }
   }, [user?.id, updateUser]);
 
+  const saveGameResult = useCallback(async (gameResult: 'win' | 'loss' | 'push', pScore: number, dScore: number) => {
+    if (user?.id) {
+      try {
+        await apiRequest('POST', '/api/results', {
+          userId: user.id,
+          result: gameResult,
+          playerScore: pScore,
+          dealerScore: dScore,
+          betAmount: currentBet,
+        });
+      } catch (err) {
+        // Ignore
+      }
+    }
+  }, [user?.id, currentBet]);
+
   const updateBet = useCallback((amount: number) => {
     if (status === 'idle' || status === 'game-over') {
       if (amount > balance) return;
@@ -76,97 +92,6 @@ export function useBlackjack() {
     saveBalance(STARTING_BALANCE);
     soundManager.playSFX('buttonClick');
   }, [saveBalance]);
-
-  const deal = useCallback(() => {
-    if (currentBet <= 0) return; // Must place a bet
-
-    // Play deal sound
-    soundManager.playSFX('cardDeal');
-
-    // Deduct bet from balance
-    const newBalance = balance - currentBet;
-    setBalance(newBalance);
-
-    // If deck is running low (penetration < 20 cards), reshuffle
-    let currentDeck = [...deck];
-    if (currentDeck.length < 20) {
-      currentDeck = createDeck();
-    }
-
-    const pCard1 = currentDeck.pop()!;
-    const dCard1 = currentDeck.pop()!;
-    const pCard2 = currentDeck.pop()!;
-    const dCard2 = { ...currentDeck.pop()!, isHidden: true }; // Hide dealer's second card
-
-    setDeck(currentDeck);
-    setPlayerHand([pCard1, pCard2]);
-    setDealerHand([dCard1, dCard2]);
-    setStatus('playing');
-    setResult(null);
-
-    // Check for natural Blackjack immediately
-    const pScore = calculateScore([pCard1, pCard2]);
-    if (pScore === 21) {
-      setTimeout(() => {
-        stand();
-      }, 1000);
-    }
-  }, [deck, currentBet, balance, stand]);
-
-  const forfeit = useCallback(() => {
-    if (status !== 'playing') return;
-    
-    setStatus('game-over');
-    setResult('loss');
-    setDealerHand(prev => prev.map(c => ({ ...c, isHidden: false })));
-    
-    soundManager.playSFX('lose');
-    saveBalance(balance);
-    saveGameResult('loss', calculateScore(playerHand), calculateScore(dealerHand));
-  }, [status, balance, saveBalance, saveGameResult, playerHand, dealerHand]);
-
-  const saveGameResult = useCallback(async (gameResult: 'win' | 'loss' | 'push', pScore: number, dScore: number) => {
-    if (user?.id) {
-      try {
-        await apiRequest('POST', '/api/results', {
-          userId: user.id,
-          result: gameResult,
-          playerScore: pScore,
-          dealerScore: dScore,
-          betAmount: currentBet,
-        });
-      } catch (err) {
-        // Ignore
-      }
-    }
-  }, [user?.id, currentBet]);
-
-  const hit = useCallback(() => {
-    if (status !== 'playing') return;
-
-    soundManager.playSFX('cardDeal');
-
-    const newDeck = [...deck];
-    const card = newDeck.pop()!;
-    const newHand = [...playerHand, card];
-
-    setDeck(newDeck);
-    setPlayerHand(newHand);
-
-    const score = calculateScore(newHand);
-    if (score > 21) {
-      setStatus('game-over');
-      setResult('bust');
-      // Reveal dealer card for visual completeness
-      setDealerHand(prev => prev.map(c => ({ ...c, isHidden: false })));
-      
-      soundManager.playSFX('lose');
-      
-      // Save balance (bet was already deducted)
-      saveBalance(balance);
-      saveGameResult('loss', score, calculateScore(dealerHand));
-    }
-  }, [deck, playerHand, status, dealerHand, balance, saveBalance, saveGameResult]);
 
   const processWinnings = useCallback((finalResult: GameResult): number => {
     let newBalance = balance;
@@ -267,6 +192,81 @@ export function useBlackjack() {
     soundManager.playSFX('dealerStand');
     dealerPlay();
   }, [status, dealerPlay]);
+
+  const deal = useCallback(() => {
+    if (currentBet <= 0) return; // Must place a bet
+
+    // Play deal sound
+    soundManager.playSFX('cardDeal');
+
+    // Deduct bet from balance
+    const newBalance = balance - currentBet;
+    setBalance(newBalance);
+
+    // If deck is running low (penetration < 20 cards), reshuffle
+    let currentDeck = [...deck];
+    if (currentDeck.length < 20) {
+      currentDeck = createDeck();
+    }
+
+    const pCard1 = currentDeck.pop()!;
+    const dCard1 = currentDeck.pop()!;
+    const pCard2 = currentDeck.pop()!;
+    const dCard2 = { ...currentDeck.pop()!, isHidden: true }; // Hide dealer's second card
+
+    setDeck(currentDeck);
+    setPlayerHand([pCard1, pCard2]);
+    setDealerHand([dCard1, dCard2]);
+    setStatus('playing');
+    setResult(null);
+
+    // Check for natural Blackjack immediately
+    const pScore = calculateScore([pCard1, pCard2]);
+    if (pScore === 21) {
+      setTimeout(() => {
+        stand();
+      }, 1000);
+    }
+  }, [deck, currentBet, balance, stand]);
+
+  const forfeit = useCallback(() => {
+    if (status !== 'playing') return;
+    
+    setStatus('game-over');
+    setResult('loss');
+    setDealerHand(prev => prev.map(c => ({ ...c, isHidden: false })));
+    
+    soundManager.playSFX('lose');
+    saveBalance(balance);
+    saveGameResult('loss', calculateScore(playerHand), calculateScore(dealerHand));
+  }, [status, balance, saveBalance, saveGameResult, playerHand, dealerHand]);
+
+  const hit = useCallback(() => {
+    if (status !== 'playing') return;
+
+    soundManager.playSFX('cardDeal');
+
+    const newDeck = [...deck];
+    const card = newDeck.pop()!;
+    const newHand = [...playerHand, card];
+
+    setDeck(newDeck);
+    setPlayerHand(newHand);
+
+    const score = calculateScore(newHand);
+    if (score > 21) {
+      setStatus('game-over');
+      setResult('bust');
+      // Reveal dealer card for visual completeness
+      setDealerHand(prev => prev.map(c => ({ ...c, isHidden: false })));
+      
+      soundManager.playSFX('lose');
+      
+      // Save balance (bet was already deducted)
+      saveBalance(balance);
+      saveGameResult('loss', score, calculateScore(dealerHand));
+    }
+  }, [deck, playerHand, status, dealerHand, balance, saveBalance, saveGameResult]);
 
   return {
     deck,
