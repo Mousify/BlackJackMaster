@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useBlackjack } from "@/hooks/use-blackjack";
 import { useSound } from "@/hooks/use-sound";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,8 +8,8 @@ import { ActionButton } from "@/components/ActionButton";
 import { GameOverlay } from "@/components/GameOverlay";
 import { ChipSelector } from "@/components/ChipSelector";
 import { AnimatePresence, motion } from "framer-motion";
-import { Hand, StopCircle, PlayCircle, Trophy, Home, RotateCcw, Volume2, VolumeX, User } from "lucide-react";
-import { Link } from "wouter";
+import { Hand, StopCircle, PlayCircle, Trophy, Home, RotateCcw, Volume2, VolumeX, User, Trash2, AlertTriangle, X } from "lucide-react";
+import { Link, useLocation } from "wouter";
 
 import casinoBgImg from "@assets/casino-background_1769865411534.jpg";
 import dealerAvatarImg from "@assets/dealer-avatar_1769865411537.png";
@@ -17,6 +17,7 @@ import playerAvatarImg from "@assets/player-avatar_1769865411539.png";
 
 function GameContent() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const { 
     dealerHand, 
     playerHand, 
@@ -24,16 +25,21 @@ function GameContent() {
     deal, 
     hit, 
     stand, 
+    forfeit,
+    clearBet,
     result,
     playerScore,
     dealerScore,
     balance,
+    displayBalance,
     currentBet,
     updateBet,
-    resetBalance
+    resetBalance,
+    setResult
   } = useBlackjack();
 
   const { playGameMusic, stopMusic, toggleMute, isMuted, playSFX } = useSound();
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // Start game music when entering game page
   useEffect(() => {
@@ -58,6 +64,27 @@ function GameContent() {
     stand();
   };
 
+  const handleClearBet = () => {
+    playSFX('buttonClick');
+    clearBet();
+  };
+
+  const handleHomeClick = (e: React.MouseEvent) => {
+    if (isPlaying || status === 'dealer-turn') {
+      e.preventDefault();
+      playSFX('buttonClick');
+      setShowExitConfirm(true);
+    } else {
+      playSFX('buttonClick');
+    }
+  };
+
+  const confirmExit = () => {
+    playSFX('buttonClick');
+    forfeit();
+    setLocation("/");
+  };
+
   return (
     <div className="min-h-screen text-foreground flex flex-col relative overflow-hidden">
       {/* Casino Background */}
@@ -70,7 +97,7 @@ function GameContent() {
       
       {/* Navbar / Header */}
       <header className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10">
-        <Link href="/">
+        <Link href="/" onClick={handleHomeClick}>
           <button
             data-testid="button-home"
             className="text-white/70 hover:text-white transition-colors flex items-center gap-2 font-medium bg-black/30 px-3 py-2 rounded-full hover:bg-black/40"
@@ -97,7 +124,7 @@ function GameContent() {
               <span className="hidden sm:inline">Reset</span>
             </button>
           )}
-          <Link href="/profile">
+          <Link href="/profile" onClick={handleHomeClick}>
             <button
               data-testid="button-profile-nav"
               className="text-white/70 hover:text-white transition-colors flex items-center gap-2 font-medium bg-black/30 px-3 py-2 rounded-full hover:bg-black/40"
@@ -109,7 +136,7 @@ function GameContent() {
               />
             </button>
           </Link>
-          <Link href="/stats">
+          <Link href="/stats" onClick={handleHomeClick}>
             <button
               data-testid="button-stats-nav"
               className="text-white/70 hover:text-white transition-colors flex items-center gap-2 font-medium bg-black/30 px-3 py-2 rounded-full hover:bg-black/40"
@@ -127,7 +154,55 @@ function GameContent() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] border-4 border-white/5 rounded-full opacity-20" />
       </div>
 
-      <GameOverlay result={result} onRestart={handleDeal} currentBet={currentBet} />
+      <GameOverlay 
+        result={result} 
+        onRestart={() => {
+          setResult(null);
+          clearBet();
+        }} 
+        onClose={() => setResult(null)}
+        currentBet={currentBet} 
+      />
+
+      {/* Exit Confirmation Modal */}
+      <AnimatePresence>
+        {showExitConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-black/90 border border-white/10 p-8 rounded-3xl max-w-sm w-full mx-4 text-center"
+            >
+              <div className="bg-destructive/20 text-destructive p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-6">
+                <AlertTriangle className="w-8 h-8" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">Leave Game?</h2>
+              <p className="text-white/60 mb-8">
+                The game is ongoing. If you leave now, you will lose your bet of <span className="text-secondary font-bold">${currentBet}</span>.
+              </p>
+              <div className="flex flex-col gap-3">
+                <ActionButton onClick={confirmExit} variant="destructive">
+                  Leave & Lose Bet
+                </ActionButton>
+                <button 
+                  onClick={() => {
+                    playSFX('buttonClick');
+                    setShowExitConfirm(false);
+                  }}
+                  className="text-white/60 hover:text-white py-2 font-bold"
+                >
+                  Keep Playing
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Game Area */}
       <main className="flex-1 flex flex-col max-w-5xl mx-auto w-full p-4 pt-16 relative z-0">
@@ -240,13 +315,25 @@ function GameContent() {
         <div className="mt-auto pt-4 pb-4">
           {/* Chip Selector (only when not actively playing) */}
           {canDeal && (
-            <div className="mb-6">
+            <div className="mb-6 relative">
               <ChipSelector
                 balance={balance}
+                displayBalance={displayBalance}
                 currentBet={currentBet}
                 onBetChange={updateBet}
-                disabled={!canDeal}
+                disabled={!canDeal || result !== null}
               />
+              {currentBet > 0 && canDeal && result === null && (
+                <motion.button
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  onClick={handleClearBet}
+                  className="absolute right-0 top-0 text-white/40 hover:text-red-400 transition-colors p-2"
+                  title="Clear Bet"
+                >
+                  <Trash2 className="w-6 h-6" />
+                </motion.button>
+              )}
             </div>
           )}
 
@@ -258,7 +345,7 @@ function GameContent() {
                   onClick={handleDeal} 
                   className="w-full max-w-xs"
                   variant="primary"
-                  disabled={currentBet <= 0 || balance < 0}
+                  disabled={currentBet <= 0 || balance < 0 || result !== null}
                 >
                   <div className="flex items-center justify-center gap-2">
                     <PlayCircle className="w-6 h-6" />

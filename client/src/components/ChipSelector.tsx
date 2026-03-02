@@ -11,6 +11,7 @@ import chip500Img from "@assets/chip-500_1769865411536.png";
 
 interface ChipSelectorProps {
   balance: number;
+  displayBalance: number;
   currentBet: number;
   onBetChange: (amount: number) => void;
   disabled?: boolean;
@@ -101,7 +102,7 @@ function getScatteredChipsWithPositions(amount: number): {
   return chips;
 }
 
-export function ChipSelector({ balance, currentBet, onBetChange, disabled }: ChipSelectorProps) {
+export function ChipSelector({ balance, displayBalance, currentBet, onBetChange, disabled }: ChipSelectorProps) {
   const scatteredChips = useMemo(() => getScatteredChipsWithPositions(currentBet), [currentBet]);
   
   const addToBet = (amount: number) => {
@@ -155,6 +156,7 @@ export function ChipSelector({ balance, currentBet, onBetChange, disabled }: Chi
                   className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 md:w-9 md:h-9 cursor-pointer"
                   style={{ zIndex: chip.stackIndex }}
                   data-testid={`betting-chip-${chip.value}`}
+                  disabled={disabled}
                 >
                   <img 
                     src={chip.image}
@@ -191,7 +193,7 @@ export function ChipSelector({ balance, currentBet, onBetChange, disabled }: Chi
         {/* Balance Display */}
         <div className="text-center">
           <p className="text-xs uppercase tracking-wider text-white/50">Balance</p>
-          <p className="font-bold text-lg md:text-xl font-display text-secondary">${balance}</p>
+          <p className="font-bold text-lg md:text-xl font-display text-secondary">${displayBalance}</p>
         </div>
 
         {/* Chips */}

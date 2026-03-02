@@ -16,13 +16,24 @@ export function useBlackjack() {
   const [result, setResult] = useState<GameResult>(null);
   const [balance, setBalance] = useState<number>(user?.balance ?? STARTING_BALANCE);
   const [currentBet, setCurrentBet] = useState<number>(0);
+  const [displayBalance, setDisplayBalance] = useState<number>(user?.balance ?? STARTING_BALANCE);
 
   // Sync balance with user from server
   useEffect(() => {
     if (user?.balance !== undefined) {
       setBalance(user.balance);
+      setDisplayBalance(user.balance);
     }
   }, [user?.balance]);
+
+  // Update display balance when current bet or actual balance changes
+  useEffect(() => {
+    if (status === 'idle' || status === 'game-over') {
+      setDisplayBalance(balance - currentBet);
+    } else {
+      setDisplayBalance(balance);
+    }
+  }, [balance, currentBet, status]);
 
   // Initialize deck on mount
   useEffect(() => {
@@ -43,13 +54,21 @@ export function useBlackjack() {
 
   const updateBet = useCallback((amount: number) => {
     if (status === 'idle' || status === 'game-over') {
+      if (amount > balance) return;
       // Play chip sound based on change
       if (amount > currentBet) {
         soundManager.playSFX('chipSingle');
       }
       setCurrentBet(amount);
     }
-  }, [status, currentBet]);
+  }, [status, currentBet, balance]);
+
+  const clearBet = useCallback(() => {
+    if (status === 'idle' || status === 'game-over') {
+      setCurrentBet(0);
+      soundManager.playSFX('buttonClick');
+    }
+  }, [status]);
 
   const resetBalance = useCallback(() => {
     setBalance(STARTING_BALANCE);
@@ -93,6 +112,18 @@ export function useBlackjack() {
       }, 1000);
     }
   }, [deck, currentBet, balance, stand]);
+
+  const forfeit = useCallback(() => {
+    if (status !== 'playing') return;
+    
+    setStatus('game-over');
+    setResult('loss');
+    setDealerHand(prev => prev.map(c => ({ ...c, isHidden: false })));
+    
+    soundManager.playSFX('lose');
+    saveBalance(balance);
+    saveGameResult('loss', calculateScore(playerHand), calculateScore(dealerHand));
+  }, [status, balance, saveBalance, saveGameResult, playerHand, dealerHand]);
 
   const saveGameResult = useCallback(async (gameResult: 'win' | 'loss' | 'push', pScore: number, dScore: number) => {
     if (user?.id) {
@@ -246,11 +277,15 @@ export function useBlackjack() {
     deal,
     hit,
     stand,
+    forfeit,
+    clearBet,
     playerScore: calculateScore(playerHand),
     dealerScore: calculateScore(dealerHand),
     balance,
+    displayBalance,
     currentBet,
     updateBet,
-    resetBalance
+    resetBalance,
+    setResult
   };
 }
