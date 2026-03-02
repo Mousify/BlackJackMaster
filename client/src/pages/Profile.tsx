@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, Camera, Save, LogOut, User } from "lucide-react";
