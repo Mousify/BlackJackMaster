@@ -72,3 +72,36 @@ Preferred communication style: Simple, everyday language.
 ### Third-Party Integrations
 - Google Fonts (DM Sans, Space Grotesk, JetBrains Mono)
 - Replit-specific Vite plugins for development environment
+
+## Database Migration to Xata
+
+Follow these steps to migrate your database from the built-in PostgreSQL to Xata:
+
+### 1. Set up Xata
+- Create an account at [xata.io](https://xata.io).
+- Create a new database in your Xata dashboard.
+- Get your PostgreSQL connection string from the Xata dashboard (Settings > Configuration > PostgreSQL connection). It should look like `postgres://user:password@host:port/dbname?sslmode=require`.
+
+### 2. Export Current Data (Optional)
+If you have important data in your current Replit database:
+- Open the Replit Shell.
+- Run `pg_dump $DATABASE_URL > backup.sql`.
+- Download `backup.sql` to your local machine.
+
+### 3. Update Environment Variables
+- Open the **Secrets** tool in Replit.
+- Replace the value of `DATABASE_URL` with your new Xata PostgreSQL connection string.
+- Ensure the connection string includes `sslmode=require`.
+
+### 4. Run Migrations
+- Since Xata supports PostgreSQL, you can use the existing Drizzle setup.
+- In the Replit Shell, run `npm run db:push` to sync the schema to Xata.
+
+### 5. Verify Connection
+- Restart the "Start application" workflow.
+- Check the logs to ensure the server starts without database connection errors.
+- Create a new account to verify that data is being saved to Xata.
+
+### 6. Import Data to Xata (If you did step 2)
+- You can use a tool like `psql` or the Xata dashboard's import feature to upload your `backup.sql`.
+- In Replit Shell: `psql $DATABASE_URL < backup.sql`.
