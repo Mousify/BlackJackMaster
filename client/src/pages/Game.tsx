@@ -7,8 +7,9 @@ import { PlayingCard } from "@/components/PlayingCard";
 import { ActionButton } from "@/components/ActionButton";
 import { GameOverlay } from "@/components/GameOverlay";
 import { ChipSelector } from "@/components/ChipSelector";
+import { SettingsModal } from "@/components/SettingsModal";
 import { AnimatePresence, motion } from "framer-motion";
-import { Hand, StopCircle, PlayCircle, Trophy, Home, RotateCcw, Volume2, VolumeX, User, Trash2, AlertTriangle, X } from "lucide-react";
+import { Hand, StopCircle, PlayCircle, Trophy, Home, RotateCcw, Volume2, VolumeX, User, Trash2, AlertTriangle, X, Settings } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 import casinoBgImg from "@assets/casino-background_1769865411534.jpg";
@@ -40,6 +41,7 @@ function GameContent() {
 
   const { playGameMusic, stopMusic, toggleMute, isMuted, playSFX } = useSound();
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Start game music when entering game page
   useEffect(() => {
@@ -69,6 +71,11 @@ function GameContent() {
     clearBet();
   };
 
+  const handleSettingsClick = () => {
+    playSFX('buttonClick');
+    setIsSettingsOpen(true);
+  };
+
   const handleHomeClick = (e: React.MouseEvent) => {
     if (isPlaying || status === 'dealer-turn') {
       e.preventDefault();
@@ -87,6 +94,8 @@ function GameContent() {
 
   return (
     <div className="min-h-screen text-foreground flex flex-col relative overflow-hidden">
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      
       {/* Casino Background */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -107,6 +116,13 @@ function GameContent() {
           </button>
         </Link>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleSettingsClick}
+            data-testid="button-settings"
+            className="text-white/70 hover:text-white transition-colors flex items-center gap-2 font-medium bg-black/30 px-3 py-2 rounded-full hover:bg-black/40"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
           <button
             onClick={toggleMute}
             data-testid="button-toggle-mute"
@@ -228,7 +244,13 @@ function GameContent() {
           <div className="relative h-36 md:h-48 w-full flex justify-center">
             <AnimatePresence>
               {dealerHand.map((card, i) => (
-                <PlayingCard key={card.id} card={card} index={i} total={dealerHand.length} />
+                <PlayingCard 
+                  key={card.id} 
+                  card={card} 
+                  index={i} 
+                  total={dealerHand.length} 
+                  style={{ zIndex: card.isHidden ? 0 : 10 + i }}
+                />
               ))}
               {dealerHand.length === 0 && (
                  <div className="w-24 h-36 md:w-32 md:h-48 border-2 border-dashed border-white/10 rounded-xl flex items-center justify-center">

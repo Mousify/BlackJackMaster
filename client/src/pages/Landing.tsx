@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { PlayCircle, Trophy, Volume2, VolumeX, LogIn, LogOut, User } from "lucide-react";
+import { PlayCircle, Trophy, Volume2, VolumeX, LogIn, LogOut, User, Settings } from "lucide-react";
 import { useSound } from "@/hooks/use-sound";
 import { useAuth } from "@/contexts/AuthContext";
+import { SettingsModal } from "@/components/SettingsModal";
 
 import logoImg from "@assets/logo_1769865411538.png";
 import casinoBgImg from "@assets/casino-background_1769865411534.jpg";
@@ -16,6 +17,7 @@ import playerAvatarImg from "@assets/player-avatar_1769865411539.png";
 export default function Landing() {
   const { playMainTheme, stopMusic, toggleMute, isMuted, playSFX } = useSound();
   const { user, logout, isLoading } = useAuth();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const chips = [
     { value: 1, image: chip1Img },
@@ -39,8 +41,15 @@ export default function Landing() {
     logout();
   };
 
+  const handleSettingsClick = () => {
+    playSFX('buttonClick');
+    setIsSettingsOpen(true);
+  };
+
   return (
     <div className="min-h-screen text-foreground flex flex-col relative overflow-hidden">
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      
       {/* Casino Background */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -51,6 +60,14 @@ export default function Landing() {
 
       {/* Top Right Controls */}
       <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+        <button
+          onClick={handleSettingsClick}
+          data-testid="button-settings-landing"
+          className="text-white/70 hover:text-white transition-colors flex items-center gap-2 font-medium bg-black/30 px-3 py-2 rounded-full hover:bg-black/40"
+        >
+          <Settings className="w-5 h-5" />
+        </button>
+        
         <button
           onClick={toggleMute}
           data-testid="button-toggle-mute-landing"

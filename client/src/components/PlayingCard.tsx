@@ -7,6 +7,7 @@ interface PlayingCardProps {
   card: Card;
   index: number;
   total: number;
+  style?: React.CSSProperties;
 }
 
 const SuitIcon = ({ suit, className }: { suit: Suit; className?: string }) => {
@@ -18,7 +19,7 @@ const SuitIcon = ({ suit, className }: { suit: Suit; className?: string }) => {
   }
 };
 
-export function PlayingCard({ card, index, total }: PlayingCardProps) {
+export function PlayingCard({ card, index, total, style }: PlayingCardProps) {
   const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
   
   // Calculate offset to center the card stack
@@ -54,6 +55,7 @@ export function PlayingCard({ card, index, total }: PlayingCardProps) {
       )}
       style={{
         zIndex: index,
+        ...style
       }}
     >
       <div className={cn(
@@ -87,10 +89,12 @@ export function PlayingCard({ card, index, total }: PlayingCardProps) {
         <div className={cn(
           "absolute inset-0 backface-hidden rotate-y-180 rounded-xl",
           "bg-gradient-to-br from-blue-800 to-blue-900 border-2 border-white/20",
-          "flex items-center justify-center"
+          "flex items-center justify-center overflow-hidden"
         )}>
-          <div className="w-full h-full opacity-30 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-          <div className="absolute w-12 h-12 rounded-full border-2 border-white/30" />
+          <div className="absolute inset-0 opacity-30 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+          <div className="relative z-10 w-12 h-12 rounded-full border-2 border-white/30 flex items-center justify-center bg-white/5 backdrop-blur-sm">
+            <span className="text-3xl font-black text-white/40 font-display">?</span>
+          </div>
         </div>
       </div>
     </motion.div>

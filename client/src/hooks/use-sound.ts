@@ -51,6 +51,8 @@ class SoundManager {
   private currentMusicType: 'main' | 'game' | null = null;
   private gameMusicTracks = [gameMusic1, gameMusic2];
   private isMuted = false;
+  private musicVolume = MUSIC_VOLUME;
+  private sfxVolume = SFX_VOLUME;
   private hasInteracted = false;
 
   static getInstance(): SoundManager {
@@ -61,9 +63,15 @@ class SoundManager {
   }
 
   private constructor() {
-    // Load mute preference from localStorage
-    const saved = localStorage.getItem('blackjack-muted');
-    this.isMuted = saved === 'true';
+    // Load preferences from localStorage
+    const savedMuted = localStorage.getItem('blackjack-muted');
+    this.isMuted = savedMuted === 'true';
+    
+    const savedMusicVol = localStorage.getItem('blackjack-music-volume');
+    this.musicVolume = savedMusicVol ? parseFloat(savedMusicVol) : MUSIC_VOLUME;
+    
+    const savedSFXVol = localStorage.getItem('blackjack-sfx-volume');
+    this.sfxVolume = savedSFXVol ? parseFloat(savedSFXVol) : SFX_VOLUME;
 
     // Track first interaction to resume audio context if needed
     const handleInteraction = () => {
@@ -90,6 +98,27 @@ class SoundManager {
     }
   }
 
+  getMusicVolume(): number {
+    return this.musicVolume;
+  }
+
+  setMusicVolume(volume: number): void {
+    this.musicVolume = volume;
+    localStorage.setItem('blackjack-music-volume', volume.toString());
+    if (this.musicAudio) {
+      this.musicAudio.volume = volume;
+    }
+  }
+
+  getSFXVolume(): number {
+    return this.sfxVolume;
+  }
+
+  setSFXVolume(volume: number): void {
+    this.sfxVolume = volume;
+    localStorage.setItem('blackjack-sfx-volume', volume.toString());
+  }
+
   toggleMute(): boolean {
     this.setMuted(!this.isMuted);
     return this.isMuted;
@@ -101,7 +130,7 @@ class SoundManager {
     const sound = SoundEffects[key];
     if (sound) {
       const audio = new Audio(sound);
-      audio.volume = SFX_VOLUME;
+      audio.volume = this.sfxVolume;
       audio.play().catch(() => {
         // Ignore autoplay errors
       });
@@ -121,7 +150,7 @@ class SoundManager {
 
     this.stopMusic();
     this.musicAudio = new Audio(mainThemeMusic);
-    this.musicAudio.volume = MUSIC_VOLUME;
+    this.musicAudio.volume = this.musicVolume;
     this.musicAudio.loop = true;
     this.musicAudio.muted = this.isMuted;
     this.currentMusicType = 'main';
@@ -148,7 +177,7 @@ class SoundManager {
   private playRandomGameTrack(): void {
     const randomTrack = this.gameMusicTracks[Math.floor(Math.random() * this.gameMusicTracks.length)];
     this.musicAudio = new Audio(randomTrack);
-    this.musicAudio.volume = MUSIC_VOLUME;
+    this.musicAudio.volume = this.musicVolume;
     this.musicAudio.muted = this.isMuted;
     this.currentMusicType = 'game';
     
@@ -177,7 +206,9 @@ class SoundManager {
 export const soundManager = SoundManager.getInstance();
 
 export function useSound() {
-  const [isMuted, setIsMuted] = useState(soundManager.getMuted());
+  const [isMuted, setIsMuted] = useState(() => soundManager.getMuted());
+  const [musicVolume, setMusicVolumeState] = useState(() => soundManager.getMusicVolume());
+  const [sfxVolume, setSfxVolumeState] = useState(() => soundManager.getSFXVolume());
 
   const playSFX = useCallback((key: SoundEffectKey) => {
     soundManager.playSFX(key);
@@ -201,6 +232,16 @@ export function useSound() {
     return newMuted;
   }, []);
 
+  const setMusicVolume = useCallback((vol: number) => {
+    soundManager.setMusicVolume(vol);
+    setMusicVolumeState(vol);
+  }, []);
+
+  const setSfxVolume = useCallback((vol: number) => {
+    soundManager.setSFXVolume(vol);
+    setSfxVolumeState(vol);
+  }, []);
+
   return {
     playSFX,
     playMainTheme,
@@ -208,5 +249,9 @@ export function useSound() {
     stopMusic,
     toggleMute,
     isMuted,
+    musicVolume,
+    sfxVolume,
+    setMusicVolume,
+    setSfxVolume,
   };
 }
