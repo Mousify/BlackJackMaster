@@ -13,8 +13,12 @@ export default function Signup() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { signup } = useAuth();
-  const { playSFX } = useSound();
+  const { playSFX, playMainTheme } = useSound();
   const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    playMainTheme();
+  }, [playMainTheme]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

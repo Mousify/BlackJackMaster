@@ -13,8 +13,12 @@ export default function Login() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
-  const { playSFX } = useSound();
+  const { playSFX, playMainTheme } = useSound();
   const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    playMainTheme();
+  }, [playMainTheme]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

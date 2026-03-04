@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Card, createDeck, calculateScore, GameStatus, GameResult } from '@/lib/blackjack-engine';
 import { soundManager } from './use-sound';
 import { useAuth } from '@/contexts/AuthContext';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import confetti from 'canvas-confetti';
 
 const STARTING_BALANCE = 1000;
@@ -62,6 +62,8 @@ export function useBlackjack() {
           dealerScore: dScore,
           betAmount: currentBet,
         });
+        // Invalidate results query to trigger achievement check
+        queryClient.invalidateQueries({ queryKey: ['/api/results/user', user.id] });
       } catch (err) {
         // Ignore
       }

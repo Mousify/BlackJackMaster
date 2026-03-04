@@ -11,18 +11,22 @@ import Stats from "@/pages/Stats";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import Profile from "@/pages/Profile";
+import { AchievementManager } from "@/components/AchievementManager";
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Landing} />
-      <Route path="/game" component={Game} />
-      <Route path="/stats" component={Stats} />
-      <Route path="/login" component={Login} />
-      <Route path="/signup" component={Signup} />
-      <Route path="/profile" component={Profile} />
-      <Route component={NotFound} />
-    </Switch>
+    <>
+      <AchievementManager />
+      <Switch>
+        <Route path="/" component={Landing} />
+        <Route path="/game" component={Game} />
+        <Route path="/stats" component={Stats} />
+        <Route path="/login" component={Login} />
+        <Route path="/signup" component={Signup} />
+        <Route path="/profile" component={Profile} />
+        <Route component={NotFound} />
+      </Switch>
+    </>
   );
 }
 

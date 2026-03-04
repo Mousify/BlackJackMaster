@@ -26,8 +26,6 @@ interface Achievement {
 function StatsContent() {
   const { user } = useAuth();
   const { playMainTheme, playSFX } = useSound();
-  const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
-  const [shownAchievements, setShownAchievements] = useState<Set<string>>(new Set());
   
   useEffect(() => {
     playMainTheme();
@@ -93,24 +91,6 @@ function StatsContent() {
     }
   ];
 
-  // Track new achievements
-  useEffect(() => {
-    if (!isLoading && achievements.length > 0) {
-      const unlocked = achievements.filter(a => a.unlocked && !shownAchievements.has(a.id));
-      if (unlocked.length > 0) {
-        const latest = unlocked[0];
-        setNewAchievement(latest);
-        setShownAchievements(prev => new Set([...prev, latest.id]));
-        playSFX('win');
-        
-        const timer = setTimeout(() => {
-          setNewAchievement(null);
-        }, 5000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [achievements, isLoading, shownAchievements, playSFX]);
-
   const handleBack = () => {
     playSFX('buttonClick');
     if (window.history.length > 1) {
@@ -122,29 +102,6 @@ function StatsContent() {
 
   return (
     <div className="min-h-screen text-foreground relative overflow-hidden">
-      {/* Achievement Notification */}
-      <AnimatePresence>
-        {newAchievement && (
-          <motion.div
-            initial={{ opacity: 0, y: -100 }}
-            animate={{ opacity: 1, y: 20 }}
-            exit={{ opacity: 0, y: -100 }}
-            className="fixed top-0 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4"
-          >
-            <div className="bg-secondary/90 backdrop-blur-md border border-secondary text-black p-4 rounded-2xl shadow-2xl flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/20 rounded-xl p-1 shrink-0">
-                <img src={newAchievement.image} alt="" className="w-full h-full object-contain" />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs uppercase tracking-widest font-black opacity-60">Achievement Unlocked!</p>
-                <h4 className="text-lg font-bold leading-tight">{newAchievement.name}</h4>
-                <p className="text-sm opacity-80">{newAchievement.description}</p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Casino Background */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
